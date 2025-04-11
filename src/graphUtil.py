@@ -8,9 +8,11 @@ import matplotlib.pyplot as plt
 def generate_graph(n):
     indexMax = 5*n
     positions = np.random.uniform(0, indexMax, size=(n, 2))
-    positions_dict = {i : tuple(positions[i]) for i in range(n)}
+    positions_dict = {i : tuple(positions[i-1]) for i in range(1, n+1)}
 
-    G = nx.complete_graph(n)
+    names = list(range(1, n+1))
+
+    G = nx.complete_graph(names)
     for u, v in G.edges():
         x1, y1 = positions_dict[u]
         x2, y2 = positions_dict[v]
@@ -74,14 +76,19 @@ def select_blocked_edges(G, k):
     return blocked_edges
 
 def apply_blockages(G, blocked_edges):
-    for u, v in blocked_edges:
-        G[u][v]['blocked']=True
+    for u, v in G.edges:
+        if (u, v) in blocked_edges:
+            G[u][v]['blocked']=True
+        else:
+            G[u][v]['blocked']=False
     return
 
 def generate_graph_blocked(n, k):
     graph = generate_graph(n)
     blocked_edges = select_blocked_edges(graph, k)
     apply_blockages(graph, blocked_edges)
+
+    print(f"Create a complete graph with {n} nodes and {k} blocked edges")
 
     return graph
 
@@ -104,12 +111,14 @@ def drawGraph(G):
     plt.show()
 
 if __name__ == '__main__':
-    for i in range(20):
-        n = random.randint(100, 200)
-        G = generate_graph(n)
-        print(satisfies_triangle_inequality_2(G))
-    # drawGraph(G)
-    # blocked_edges = select_blocked_edges(G, 5)
-    # apply_blockages(G, blocked_edges)
-
-    # drawGraph(G)
+    n = random.randint(100, 200)
+    G = generate_graph(16)
+    print(satisfies_triangle_inequality_2(G))
+    #drawGraph(G)
+    blocked_edges = select_blocked_edges(G, 11)
+    apply_blockages(G, blocked_edges)
+    for u, v in G.edges:
+        if G.get_edge_data(u, v)['blocked'] == None:
+            break
+        print(f"u: {u}, v: {v}, blocked: {G.get_edge_data(u, v)['blocked']}")
+    #drawGraph(G)
