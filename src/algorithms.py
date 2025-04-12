@@ -52,7 +52,7 @@ class GreedyPerfecMintMatch(object):
 class Christofides(object):
     def __init__(self):
         self._mstAlgorithm = Prim()
-        self._perfectMinMatchAlgorithm = GreedyPerfecMintMatch()
+        # self._perfectMinMatchAlgorithm = GreedyPerfecMintMatch()
 
     def findEulerianTour(self, eulerianGraph, src):
         """Find an Eulerian tour."""
@@ -91,8 +91,7 @@ class Christofides(object):
                 eulerianTour.append(u)
                 if backtrack:
                     stack.append(backtrack.pop())
-        # The Eulerian tour is indeed reversed, but it doesn't matter.
-        return eulerianTour
+        return eulerianTour[::-1]
     
     def buildHamiltonianCircuit(self, eulerianTour):
         """Build a Hamiltonian circuit from an Eulerian tour."""
@@ -109,7 +108,7 @@ class Christofides(object):
     def apply(self, graph, src):
         # Compute a MST.
         parent = self._mstAlgorithm.apply(graph, src)
-        print(f"{parent=}")
+        # print(f"{parent=}")
 
         # Count the degree of each node in MST and filter only nodes with odd degree.
         degreeCnt = dict()
@@ -118,12 +117,13 @@ class Christofides(object):
                 degreeCnt[u] = degreeCnt.get(u, 0) + 1
                 degreeCnt[v] = degreeCnt.get(v, 0) + 1
         oddDegreeNodes = list(filter(lambda v: degreeCnt[v] & 1, degreeCnt.keys()))
-        print(f"{oddDegreeNodes=}, {degreeCnt=}")
+        # print(f"{oddDegreeNodes=}, {degreeCnt=}")
 
         # Compute the perfect min match.
         oddVerticesGraph = graph.subgraph(oddDegreeNodes)
-        perfectMinMatch = self._perfectMinMatchAlgorithm.apply(oddVerticesGraph)
-        print(f"{perfectMinMatch=}")
+        # perfectMinMatch = self._perfectMinMatchAlgorithm.apply(oddVerticesGraph)
+        perfectMinMatch = nx.min_weight_matching(oddVerticesGraph)
+        # print(f"{perfectMinMatch=}")
 
         # Build the Eulerian graph.
         eulerianGraph = nx.MultiGraph()
@@ -133,14 +133,14 @@ class Christofides(object):
                 eulerianGraph.add_edge(u, v)
         for u, v in perfectMinMatch:
             eulerianGraph.add_edge(u, v)
-        print(eulerianGraph.edges)
+
         # Find an Eulerian tour.
         eulerianTour = self.findEulerianTour(eulerianGraph, src)
-        print(f"{eulerianTour=} with size={len(eulerianTour)}")
+        # print(f"{eulerianTour=} with size={len(eulerianTour)}")
 
         # Build a Hamiltonian circuit.
         hamiltonianCircuit = self.buildHamiltonianCircuit(eulerianTour)
-        print(f"{hamiltonianCircuit=} with size={len(hamiltonianCircuit)}")
+        # print(f"{hamiltonianCircuit=} with size={len(hamiltonianCircuit)}")
         return hamiltonianCircuit
 
 
@@ -186,7 +186,7 @@ class CR(object):
                             newBlockedEdges.add((vl, vj))
                     else:
                         break
-                    l += step
+                    l = (l + step) % len(P)
                     vl = P[l]
                 if vl != vj:
                     unvisitedVertices.remove(vj)
@@ -218,8 +218,8 @@ class CR(object):
     
     def apply(self, graph, src):
         Pcr = [src]
-        P = list(range(1, 17)) # test.
-        # P = self._christofides.apply(graph, src)[:-1]
+        # P = list(range(1, 17)) # test.
+        P = self._christofides.apply(graph, src)[:-1]
         vertexToIndex = { v: i for i, v in enumerate(P) }
         unvisitedVertices = set(graph.nodes)
         unvisitedVertices.remove(src)
@@ -271,10 +271,10 @@ class CR(object):
                 assert unvisitedVerticesAfter != unvisitedVertices
                 unvisitedVertices = unvisitedVerticesAfter
 
-            print(f"E'{m}={newBlockedEdges}")
-            print(f"{Pm=}")
-            print(f"{Pcr=}")
-            print()
+            # print(f"E'{m}={newBlockedEdges}")
+            # print(f"{Pm=}")
+            # print(f"{Pcr=}")
+            # print()
             blockedEdges.update(newBlockedEdges)
             PmMinus = Pm
             m += 1
@@ -294,10 +294,10 @@ class CR(object):
                     Pcr.append(src)
                     break
                 index = (index + 1) % len(P)
-        print(f"E'{m}={{}}")
-        print(f"Pm=[{end}, {src}]")
-        print(f"{Pcr=}")
-        print()
+        # print(f"E'{m}={set()}")
+        # print(f"Pm=[{end}, {src}]")
+        # print(f"{Pcr=}")
+        # print()
         return Pcr
 
 
@@ -324,7 +324,7 @@ class Dijkstra(object):
             unvisitedVertices.remove(minVertex)
         return minVertex
     
-    def apply(self, graph: nx.Graph, src, dest):
+    def apply(self, graph, src, dest):
         unvisitedVertices = set(graph.nodes)
         parent = { v: None for v in graph.nodes }
         distances = { v: float("inf") for v in graph.nodes }
@@ -339,31 +339,6 @@ class Dijkstra(object):
                     distances[v] = newDistance
                     parent[v] = u
         return self.buildPath(parent, src, dest)
-    
-
-# class NearestNeighbor(object):
-#     def apply(self, graph, src):
-#         # The input graph must be a completed graph.
-#         unvisitedVertices = set(graph.nodes)
-#         path = [src]
-#         curVertex = src
-#         while unvisitedVertices:
-#             unvisitedVertices.remove(curVertex)
-
-#             nearestVertex = None
-#             minDistance = float("inf")
-#             for v in graph.neighbors(curVertex):
-#                 if v in unvisitedVertices:
-#                     data = graph.get_edge_data(curVertex, v)
-#                     if not data["blocked"] and data["weight"] < minDistance:
-#                         nearestVertex = v
-#                         minDistance = data["weight"]
-#             if nearestVertex is None:
-#                 break
-#             path.append(nearestVertex)
-#             curVertex = nearestVertex
-#         path.append(src)
-#         return path
 
 
 class CNN(object):
@@ -372,7 +347,7 @@ class CNN(object):
         self._shortestPath = Dijkstra()
         # self._nn = NearestNeighbor()
     
-    def shortcut(self, graph: nx.Graph, P):
+    def shortcut(self, graph, P):
         """Perform the shortcut procedure."""
         unvisitedVertices = [P[0]]
         blockedEdges = set()
@@ -403,9 +378,9 @@ class CNN(object):
         return GStar, unvisitedVertices, Pprime
 
     def compress(self, graphStar, unvisitedVertices, graph):
-        """"""
-        # Build Gprime, which is the induced graph containing all the edges
-        # connecting 2 unvisited vertices.
+        """Build the induced graph which contains all unvisited vertices including
+        the source, and for all vertices u, v in the graph, they have at most 2 connecting edges."""
+        # Build G', which is the induced graph containing all the edges connecting 2 unvisited vertices.
         Eprime = set()
         Gprime = nx.MultiGraph()
         Gprime.add_nodes_from(unvisitedVertices)
@@ -427,20 +402,22 @@ class CNN(object):
                 vi = unvisitedVertices[i]
                 vj = unvisitedVertices[j]
                 
+                # Compute the shortest path from vi to vj using at least 1 visited intermediate vertex,
+                # since H contains only non-blocking edges, we guarantee that the shortest path is accessible.
                 shortestPath = self._shortestPath.apply(H, vi, vj)
                 cost = sum(H.get_edge_data(u, v)["weight"]
                            for u, v in zip(shortestPath, shortestPath[1:]))
-                # To facilitate redevelopment, we have decided to store the shortest path
-                # directly in the edge data, but other approaches are also possible.
+                # To facilitate redevelopment, we decided to store the shortest path directly in the edge data,
+                # but other approaches are also possible.
                 Gprime.add_edge(vi,
                                 vj,
                                 weight = cost,
                                 blocked = False,
-                                shortest_path = shortestPath[1:])
+                                shortest_path = shortestPath)
         return Gprime
 
-    def nearestNeighbor(self, graph: nx.Graph, src):
-        """Nearest neighbor algorithm."""
+    def nearestNeighbor(self, graph, src):
+        """Apply the nearest neighbor algorithm."""
         unvisitedVertices = set(graph.nodes)
         P = [src]
         curVertex = src
@@ -449,42 +426,75 @@ class CNN(object):
 
             path = None
             nearestVertex = None
-            minDistance = float("inf")
+            minWeight = float("inf")
             for v in graph.neighbors(curVertex):
                 if v not in unvisitedVertices:
                     continue
-
-                # We have multiple data, since the input graph is a multi-edge graph.
+                # Here we have multiple edge data, because the input graph is a multi-edge graph.
                 for data in graph.get_edge_data(curVertex, v).values():
-                    if not data["blocked"] and data["weight"] < minDistance:
-                        nearestVertex = v
-                        minDistance = data["weight"]
-                        path = data.get("shortest_path", [v])
+                    weight = data["weight"]
+                    if data["blocked"] or weight > minWeight:
+                        continue
+                    # Update nearest vertex and it weight and path.
+                    nearestVertex = v
+                    minWeight = weight
+                    # By construction, there are 2 possibilities for the path,
+                    # either the original edge connecting u and v,
+                    # or the shortest path from u to v or from v to u.
+                    if "shortest_path" not in data:
+                        path = [v]
+                    else:
+                        path = data["shortest_path"]
+                        assert path[0] == curVertex or path[-1] == curVertex
+                        if path[0] == curVertex:
+                            path = path[1:]
+                        else:
+                            path = path[-2::-1]
             if nearestVertex is None:
                 break
-
             P.extend(path)
             curVertex = nearestVertex
-        P.append(src)
+        # Same procedure as above.
+        path = None
+        minWeight = float("inf")
+        for data in graph.get_edge_data(curVertex, src).values():
+            weight = data["weight"]
+            if data["blocked"] or weight > minWeight:
+                continue
+            minWeight = weight
+            if "shortest_path" not in data:
+                path = [src]
+            else:
+                path = data["shortest_path"]
+                assert path[0] == curVertex or path[-1] == curVertex
+                if path[0] == curVertex:
+                    path = path[1:]
+                else:
+                    path = path[-2::-1]
+        P.extend(path)
         return P
 
     def apply(self, graph, src):
-        # P = self._christofides.apply(graph, src)
-        P = list(range(1, 17)) # test
+        P = self._christofides.apply(graph, src)[:-1]
+        # print(f"\n{P=}")
+        # P = list(range(1, 17)) # test
 
         GStar, Us, P1 = self.shortcut(graph, P)
-        print(f"{Us=}")
-        print(f"{P1=}")
-
+        # print(f"{Us=}")
+        # print(f"{P1=}")
+        # If the size of Us is less than 2, i.e. we have visited all the vertices,
+        # (because Us = {src} U { all unvisited vertices }), so wa can just return P1 as the result.
+        if len(Us) < 2:
+            return P1
+        
         GPrime = self.compress(GStar, Us, graph)
         # for u, v, d in GPrime.edges(data=True):
-        #     if "blocked" not in d:
-        #         print(u, v, d)
+        #     print(u, v, d)
 
         P2 = self.nearestNeighbor(GPrime, src)
-        print(P2)
+        # print(f"{P2=}")
         return P1 + P2[1:]
-    pass
+
 
 if __name__ == "__main__":
     # christofides = Christofides()
@@ -519,17 +529,19 @@ if __name__ == "__main__":
 
     # print(CR().apply(graph, 1))
 
-    graph = nx.Graph()
-    # edges = [ (1, 2), () ]
-    for u in range(1, 17):
-        for v in range(u, 17):
-            graph.add_edge(u, v, blocked=False, weight=1)
-    blockedEdges = [ (2, 3), (5, 6), (5, 7), (5, 8), (9, 16),
-                     (11, 12), (11, 13), (14, 2), (14, 15), (16, 1), (1, 3) ]
-    for u, v in blockedEdges:
-        graph[u][v]["blocked"] = True
-    cnn = CNN()
-    print(cnn.apply(graph, 1))
+    # graph = nx.Graph()
+    # # edges = [ (1, 2), () ]
+    # for u in range(1, 17):
+    #     for v in range(u + 1, 17):
+    #         graph.add_edge(u, v, blocked=False, weight=1)
+    # blockedEdges = [ (2, 3), (5, 6), (5, 7), (5, 8), (9, 16),
+    #                  (11, 12), (11, 13), (14, 2), (14, 15), (16, 1), (1, 3) ]
+    # for u, v in blockedEdges:
+    #     graph[u][v]["blocked"] = True
+    # cnn = CNN()
+    # c = Christofides()
+    # print(cnn.apply(graph, 1))
+    # print(c.apply(graph, 1))
     # Gstar, Us, PPrime = cnn.shortcut(graph, list(range(1, 17)) + [1])
     # print(Us)
     # GPrime = cnn.compress(Gstar, Us, graph)
