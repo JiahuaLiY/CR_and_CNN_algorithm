@@ -54,7 +54,7 @@ class Christofides(object):
         self._mstAlgorithm = Prim()
         # self._perfectMinMatchAlgorithm = GreedyPerfecMintMatch()
 
-    def findEulerianTour(self, eulerianGraph, src):
+    def findEulerianTour(self, eulerianGraph: nx.MultiGraph, src):
         """Find an Eulerian tour."""
         # Example of execution to see why we need to backtrack.
         # 1 -- 2 -- 4
@@ -91,7 +91,7 @@ class Christofides(object):
                 eulerianTour.append(u)
                 if backtrack:
                     stack.append(backtrack.pop())
-        return eulerianTour[::-1]
+        return eulerianTour
     
     def buildHamiltonianCircuit(self, eulerianTour):
         """Build a Hamiltonian circuit from an Eulerian tour."""
@@ -105,7 +105,16 @@ class Christofides(object):
         assert hamiltonianCircuit[0] == hamiltonianCircuit[-1]
         return hamiltonianCircuit
 
-    def apply(self, graph, src):
+    def apply(self, graph, src, display=True):
+        def log(mst, oddDegreeVertices, perfectMinMatch, eulerianTour, hamiltonianCircuit):
+            if not display:
+                return
+            print(f"MST: {mst}")
+            print(f"Odd degree vertices: {oddDegreeVertices}")
+            print(f"Perfect minimum matching: {perfectMinMatch}")
+            print(f"Eulerian tour: {eulerianTour}")
+            print(f"Hamiltonian circuit: {hamiltonianCircuit}")
+            print()
         # Compute a MST.
         parent = self._mstAlgorithm.apply(graph, src)
         # print(f"{parent=}")
@@ -127,7 +136,6 @@ class Christofides(object):
 
         # Build the Eulerian graph.
         eulerianGraph = nx.MultiGraph()
-        eulerianGraph = nx.MultiGraph()
         for u, v in parent.items():
             if v is not None:
                 eulerianGraph.add_edge(u, v)
@@ -141,6 +149,8 @@ class Christofides(object):
         # Build a Hamiltonian circuit.
         hamiltonianCircuit = self.buildHamiltonianCircuit(eulerianTour)
         # print(f"{hamiltonianCircuit=} with size={len(hamiltonianCircuit)}")
+
+        log(parent, oddDegreeNodes, perfectMinMatch, eulerianTour, hamiltonianCircuit)
         return hamiltonianCircuit
 
 
@@ -215,11 +225,18 @@ class CR(object):
                 Pm.append(v)
             index = (index + 1) % len(P)
         return Pm
-    
-    def apply(self, graph, src):
+
+    def apply(self, graph, src, display=True):
+        def log(Pcr, Pm, unvisitedVertices, blockedEdges, m):
+            if not display:
+                return
+            print(f"E{m}': {blockedEdges}")
+            print(f"P{m}: {" - ".join(map(lambda v: f"{v} ({vertexToIndex[v]})", Pm))}")
+            print(f"Pcr: {" - ".join(map(lambda v: f"{v} ({vertexToIndex[v]})", Pcr))}")
+            print(f"Unvisited vertices: {unvisitedVertices}")
+            print()
         Pcr = [src]
-        # P = list(range(1, 17)) # test.
-        P = self._christofides.apply(graph, src)[:-1]
+        P = self._christofides.apply(graph, src, display=display)[:-1]
         vertexToIndex = { v: i for i, v in enumerate(P) }
         unvisitedVertices = set(graph.nodes)
         unvisitedVertices.remove(src)
@@ -239,8 +256,7 @@ class CR(object):
                                                                         blockedEdges,
                                                                         vertexToIndex,
                                                                         clockwiseDirection)
-                # If both set are equal, it means there's no non-blocking path in the current direction ?
-                # to do
+                # If both sets are equal, it means there's no non-blocking path in the current direction.
                 if unvisitedVerticesAfter == unvisitedVertices:
                     clockwiseDirection = not clockwiseDirection
                     Pm[1:] = Pm[:0:-1]
@@ -271,10 +287,7 @@ class CR(object):
                 assert unvisitedVerticesAfter != unvisitedVertices
                 unvisitedVertices = unvisitedVerticesAfter
 
-            # print(f"E'{m}={newBlockedEdges}")
-            # print(f"{Pm=}")
-            # print(f"{Pcr=}")
-            # print()
+            log(Pcr, Pm, unvisitedVertices, newBlockedEdges, m)
             blockedEdges.update(newBlockedEdges)
             PmMinus = Pm
             m += 1
@@ -294,10 +307,7 @@ class CR(object):
                     Pcr.append(src)
                     break
                 index = (index + 1) % len(P)
-        # print(f"E'{m}={set()}")
-        # print(f"Pm=[{end}, {src}]")
-        # print(f"{Pcr=}")
-        # print()
+        log(Pcr, [end, src], unvisitedVertices, set(), m)
         return Pcr
 
 
@@ -310,7 +320,7 @@ class Dijkstra(object):
             u = parent[v]
             path.append(u)
             v = u
-        return path[::-1]
+        return path
     
     def getMinVertex(self, unvisitedVertices, distances):
         """Return the unvisited vertex with the smallest known distance."""
@@ -474,8 +484,16 @@ class CNN(object):
         P.extend(path)
         return P
 
-    def apply(self, graph, src):
-        P = self._christofides.apply(graph, src)[:-1]
+    def apply(self, graph, src, display=True):
+        def log(P, Us, P1, P2):
+            if not display:
+                return
+            print(f"P: {" - ".join(map(str, P))}")
+            print(f"Us: {Us}")
+            print(f"P1: {" - ".join(map(str, P1))}")
+            print(f"P2: {" - ".join(map(str, P2))}")
+            print()
+        P = self._christofides.apply(graph, src, display=display)[:-1]
         # print(f"\n{P=}")
         # P = list(range(1, 17)) # test
 
@@ -485,6 +503,7 @@ class CNN(object):
         # If the size of Us is less than 2, i.e. we have visited all the vertices,
         # (because Us = {src} U { all unvisited vertices }), so wa can just return P1 as the result.
         if len(Us) < 2:
+            log(P, Us, P1, [])
             return P1
         
         GPrime = self.compress(GStar, Us, graph)
@@ -493,6 +512,7 @@ class CNN(object):
 
         P2 = self.nearestNeighbor(GPrime, src)
         # print(f"{P2=}")
+        log(P, Us, P1, P2)
         return P1 + P2[1:]
 
 
@@ -519,7 +539,7 @@ if __name__ == "__main__":
     # edges = [ (1, 2), () ]
     # for u in range(1, 17):
     #     for v in range(u, 17):
-    #         graph.add_edge(u, v, blocked=False)
+    #         graph.add_edge(u, v, blocked=False, weight=1)
     # blockedEdges = [ (3, 4), (3, 5), (7, 8), (9, 10), (12, 13), (12, 14),
     #                  (16, 4), (4, 5), (8, 10), (13, 14),
     #                  (13, 10), (10, 5), (5, 14),
