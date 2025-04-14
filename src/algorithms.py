@@ -341,6 +341,10 @@ class Dijkstra(object):
         distances[src] = 0
         while unvisitedVertices:
             u = self.getMinVertex(unvisitedVertices, distances)
+            # If u is None, then this means there is no path from source to destination.
+            if u is None:
+                return None
+            
             if u == dest:
                 break
             for v in graph.neighbors(u):
@@ -367,9 +371,8 @@ class CNN(object):
         while j < nbVertices:
             vi, vj = P[i], P[j]
             for x in graph.neighbors(vi):
-                if x != vi and graph.get_edge_data(vi, x)["blocked"]:
-                    if (vi, x) not in blockedEdges and \
-                        (x, vi) not in blockedEdges:
+                if graph.get_edge_data(vi, x)["blocked"]:
+                    if (vi, x) not in blockedEdges and (x, vi) not in blockedEdges:
                         blockedEdges.add((vi, x))
 
             if not graph.get_edge_data(vi, vj)["blocked"]:
@@ -378,6 +381,10 @@ class CNN(object):
             else:
                 unvisitedVertices.append(vj)
             j += 1
+        for x in graph.neighbors(vj):
+            if graph.get_edge_data(vj, x)["blocked"]:
+                if (vj, x) not in blockedEdges and (x, vj) not in blockedEdges:
+                    blockedEdges.add((vj, x))
         if graph.get_edge_data(P[i], P[0])["blocked"]:
             Pprime += Pprime[-2::-1] # Reverse path.
         else:
@@ -390,12 +397,14 @@ class CNN(object):
     def compress(self, graphStar, unvisitedVertices, graph):
         """Build the induced graph which contains all unvisited vertices including
         the source, and for all vertices u, v in the graph, they have at most 2 connecting edges."""
+        setOfUnvisitedVertices = set(unvisitedVertices)
+
         # Build G', which is the induced graph containing all the edges connecting 2 unvisited vertices.
         Eprime = set()
         Gprime = nx.MultiGraph()
         Gprime.add_nodes_from(unvisitedVertices)
         for u, v, data in graph.edges(data=True):
-            if u in unvisitedVertices and v in unvisitedVertices:
+            if u in setOfUnvisitedVertices and v in setOfUnvisitedVertices:
                 Gprime.add_edge(u, v, **data)
                 Eprime.add((u, v))
 
@@ -404,6 +413,7 @@ class CNN(object):
         H.add_nodes_from(graph.nodes)
         for u, v, data in graphStar.edges(data=True):
             if (u, v) not in Eprime and (v, u) not in Eprime:
+                assert not data["blocked"]
                 H.add_edge(u, v, **data)
 
         nbUnvisitedVertices = len(unvisitedVertices)
@@ -415,6 +425,11 @@ class CNN(object):
                 # Compute the shortest path from vi to vj using at least 1 visited intermediate vertex,
                 # since H contains only non-blocking edges, we guarantee that the shortest path is accessible.
                 shortestPath = self._shortestPath.apply(H, vi, vj)
+                # If there is no path from vi to vj, then necessarily the edge connecting vi and vj must not be blocked.
+                if shortestPath is None:
+                    assert not Gprime.get_edge_data(vi, vj)[0]["blocked"]
+                    continue
+
                 cost = sum(H.get_edge_data(u, v)["weight"]
                            for u, v in zip(shortestPath, shortestPath[1:]))
                 # To facilitate redevelopment, we decided to store the shortest path directly in the edge data,

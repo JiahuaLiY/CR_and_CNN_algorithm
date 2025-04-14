@@ -1,5 +1,4 @@
 import copy
-import algorithms as algo
 import networkx as nx
 import random
 import numpy as np
@@ -78,10 +77,10 @@ def select_blocked_edges(G, k):
 
 def apply_blockages(G, blocked_edges):
     for u, v in G.edges:
-        if (u, v) in blocked_edges:
-            G[u][v]['blocked']=True
+        if (u, v) in blocked_edges or (v, u) in blocked_edges:
+            G[u][v]['blocked'] = True
         else:
-            G[u][v]['blocked']=False
+            G[u][v]['blocked'] = False
     return
 
 def generate_blocked_graph(n, k):
@@ -140,14 +139,15 @@ def get_unblocked_subgraph(graph):
 
 
 if __name__ == '__main__':
-    chri = algo.Christofides()
-    while True:
-        G = generate_graph(50)
-        blocked_edges_for_instance = select_blocked_edges(G, 10)
-        apply_blockages(G, blocked_edges_for_instance)
-        print(len(G.edges))
-        Gprime = get_unblocked_subgraph(G)
+    # chri = algo.Christofides()
+    # while True:
+    #     G = generate_graph(50)
+    #     blocked_edges_for_instance = select_blocked_edges(G, 10)
+    #     apply_blockages(G, blocked_edges_for_instance)
+    #     print(len(G.edges))
+    #     Gprime = get_unblocked_subgraph(G)
 
-        chri.apply(Gprime, 1)
-        print()
+    #     chri.apply(Gprime, 1)
+    #     print()
+    pass
 
