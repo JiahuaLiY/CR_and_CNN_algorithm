@@ -92,6 +92,7 @@ def generate_blocked_graph(n, k):
 
 
 def drawGraph(G):
+    # render
     pos = nx.spring_layout(G, seed=42)
 
     blocked_edges = []
