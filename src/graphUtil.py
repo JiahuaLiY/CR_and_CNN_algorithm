@@ -1,9 +1,10 @@
 import copy
-
+import algorithms as algo
 import networkx as nx
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 def generate_graph(n):
     indexMax = 5*n
@@ -17,7 +18,7 @@ def generate_graph(n):
         x1, y1 = positions_dict[u]
         x2, y2 = positions_dict[v]
         distance = np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-        G[u][v]['weight'] = np.floor(distance) if distance > 0 else 1
+        G[u][v]['weight'] = distance if distance > 0 else 1
     return G
 
 def satisfies_triangle_inequality(G):
@@ -139,14 +140,13 @@ def get_unblocked_subgraph(graph):
 
 
 if __name__ == '__main__':
-    n = random.randint(100, 200)
-    G = generate_graph(5)
-    print(satisfies_triangle_inequality_2(G))
+    chri = algo.Christofides()
+    while True:
+        G = generate_graph(50)
+        blocked_edges_for_instance = select_blocked_edges(G, 10)
+        apply_blockages(G, blocked_edges_for_instance)
+        Gprime = get_unblocked_subgraph(G)
 
-    blocked_edges_for_instance = select_blocked_edges(G, 4)
-    apply_blockages(G, blocked_edges_for_instance)
-    drawGraph(G)
-    print(len(G.edges))
-    Gprime = get_unblocked_subgraph(G)
-    print(len(Gprime.edges))
-    drawGraph(Gprime)
+        p = chri.apply(Gprime, 1)
+        print(get_total_weight(Gprime, p))
+
