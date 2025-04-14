@@ -17,7 +17,7 @@ def generate_graph(n):
         x1, y1 = positions_dict[u]
         x2, y2 = positions_dict[v]
         distance = np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-        G[u][v]['weight'] = distance if distance > 0 else 1
+        G[u][v]['weight'] = np.floor(distance) if distance > 0 else 1
     return G
 
 def satisfies_triangle_inequality(G):
@@ -83,14 +83,13 @@ def apply_blockages(G, blocked_edges):
             G[u][v]['blocked']=False
     return
 
-def generate_graph_blocked(n, k):
+def generate_blocked_graph(n, k):
     graph = generate_graph(n)
     blocked_edges = select_blocked_edges(graph, k)
     apply_blockages(graph, blocked_edges)
 
-    print(f"Create a complete graph with {n} nodes and {k} blocked edges")
-
     return graph
+
 
 def drawGraph(G):
     pos = nx.spring_layout(G, seed=42)
@@ -98,7 +97,7 @@ def drawGraph(G):
     blocked_edges = []
     unblocked_edges = []
     for u, v, attr in G.edges(data=True):
-        if attr.get('blocked') == True:
+        if attr.get('blocked'):
             blocked_edges.append((u, v))
         else:
             unblocked_edges.append((u, v))
@@ -110,15 +109,43 @@ def drawGraph(G):
     plt.title('Graph')
     plt.show()
 
+
+def get_total_weight(graph, path):
+    sum_weight = 0
+    it = iter(path)
+    try:
+        end = next(it)
+    except StopIteration:
+        return 0
+
+    for vertex in it:
+        start = end
+        end = vertex
+        sum_weight += graph[start][end]['weight']
+
+    return sum_weight
+
+
+def get_unblocked_subgraph(graph):
+    graph_copy = graph.copy()
+    blocked_edges = [
+        (u, v) for u, v, attr in graph_copy.edges(data=True)
+        if attr.get('blocked') is True
+    ]
+    graph_copy.remove_edges_from(blocked_edges)
+    return graph_copy
+
+
+
 if __name__ == '__main__':
     n = random.randint(100, 200)
-    G = generate_graph(16)
+    G = generate_graph(5)
     print(satisfies_triangle_inequality_2(G))
-    #drawGraph(G)
-    blocked_edges = select_blocked_edges(G, 11)
-    apply_blockages(G, blocked_edges)
-    for u, v in G.edges:
-        if G.get_edge_data(u, v)['blocked'] == None:
-            break
-        print(f"u: {u}, v: {v}, blocked: {G.get_edge_data(u, v)['blocked']}")
-    #drawGraph(G)
+
+    blocked_edges_for_instance = select_blocked_edges(G, 4)
+    apply_blockages(G, blocked_edges_for_instance)
+    drawGraph(G)
+    print(len(G.edges))
+    Gprime = get_unblocked_subgraph(G)
+    print(len(Gprime.edges))
+    drawGraph(Gprime)
