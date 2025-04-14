@@ -21,7 +21,7 @@ def run_experiments(ns, k_ratios, repeats):
     christofides = algo.Christofides()
 
     results = []
-    total_tasks = sum(1 for _ in ns for _ in k_ratios) * repeats * 3  # 3 algorithms
+    total_tasks = sum(1 for _ in ns for _ in k_ratios) * repeats * 2
     task_counter = 0
     start_time = time.time()
 
@@ -39,7 +39,7 @@ def run_experiments(ns, k_ratios, repeats):
                         'repeat': i,
                         'k_ration': kr}
 
-                for name, alg in [('CR', cr), ('CNN', cnn), ('Christofides', christofides)]:
+                for name, alg in [('CR', cr), ('CNN', cnn)]:
                     try:
                         weight, duration = experiment(alg, graph, source)
                         data.update({

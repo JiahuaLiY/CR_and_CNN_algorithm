@@ -129,7 +129,7 @@ def get_total_weight(graph, path):
 
 
 def get_unblocked_subgraph(graph):
-    graph_copy = graph.copy()
+    graph_copy = copy.deepcopy(graph)
     blocked_edges = [
         (u, v) for u, v, attr in graph_copy.edges(data=True)
         if attr.get('blocked') is True
@@ -145,8 +145,9 @@ if __name__ == '__main__':
         G = generate_graph(50)
         blocked_edges_for_instance = select_blocked_edges(G, 10)
         apply_blockages(G, blocked_edges_for_instance)
+        print(len(G.edges))
         Gprime = get_unblocked_subgraph(G)
 
-        p = chri.apply(Gprime, 1)
-        print(get_total_weight(Gprime, p))
+        chri.apply(Gprime, 1)
+        print()
 
