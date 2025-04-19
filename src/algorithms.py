@@ -282,8 +282,9 @@ class CR(object):
                                                                         blockedEdges,
                                                                         vertexToIndex,
                                                                         clockwiseDirection)
-                # Here we mustn't have equality, since theoretically if we have equality it means
-                # that our graph are badly constructed and don't respect the initial hypothesis.
+                # Here we must not have equality between 'unvisitedVerticesAfter' and 'unvisitedVertices',
+                # since thepretically if we have equality, it means that graph is badly constructed and does not
+                # respect the initial hypothesis, in particular k < n - 1.
                 assert unvisitedVerticesAfter != unvisitedVertices
                 unvisitedVertices = unvisitedVerticesAfter
 
@@ -425,9 +426,7 @@ class CNN(object):
                 # Compute the shortest path from vi to vj using at least 1 visited intermediate vertex,
                 # since H contains only non-blocking edges, we guarantee that the shortest path is accessible.
                 shortestPath = self._shortestPath.apply(H, vi, vj)
-                # If there is no path from vi to vj, then necessarily the edge connecting vi and vj must not be blocked.
                 if shortestPath is None:
-                    assert not Gprime.get_edge_data(vi, vj)[0]["blocked"]
                     continue
 
                 cost = sum(H.get_edge_data(u, v)["weight"]
@@ -441,31 +440,33 @@ class CNN(object):
                                 shortest_path = shortestPath)
         return Gprime
 
-    def nearestNeighbor(self, graph, src):
+    def nearestNeighbor(self, graph: nx.MultiGraph, src):
         """Apply the nearest neighbor algorithm."""
-        unvisitedVertices = set(graph.nodes)
         P = [src]
+        unvisitedVertices = set(graph.nodes)
         curVertex = src
         while unvisitedVertices:
             unvisitedVertices.remove(curVertex)
 
+            # Try to find a nearest neighbor which can be reached either by using the connecting edge directly,
+            # or by using the shortest path.
+            # Note that it is possible that neither of these 2 options is feasible,
+            # as the instance described in the paper - Niklas Hahn, Michalis Xefteris, The Covering Canadian Traveller Problem Revisited, MFCS 2023.
             path = None
             nearestVertex = None
             minWeight = float("inf")
             for v in graph.neighbors(curVertex):
                 if v not in unvisitedVertices:
                     continue
-                # Here we have multiple edge data, because the input graph is a multi-edge graph.
+
                 for data in graph.get_edge_data(curVertex, v).values():
                     weight = data["weight"]
-                    if data["blocked"] or weight > minWeight:
+                    # If the edge is blocked or if the weight of this edge is no better than that
+                    # of the edge already found, ignore this edge.
+                    if data["blocked"] or weight >= minWeight:
                         continue
-                    # Update nearest vertex and it weight and path.
                     nearestVertex = v
                     minWeight = weight
-                    # By construction, there are 2 possibilities for the path,
-                    # either the original edge connecting u and v,
-                    # or the shortest path from u to v or from v to u.
                     if "shortest_path" not in data:
                         path = [v]
                     else:
@@ -476,6 +477,9 @@ class CNN(object):
                         else:
                             path = path[-2::-1]
             if nearestVertex is None:
+                # If 'nearestVertex' is None (i.e. there's no nearest neighbor) and 'unvisitedVertices' is not empty,
+                # then we end up in the situation described above, in which case, we stop the algorithm, it's the limit of NN.
+                assert not unvisitedVertices
                 break
             P.extend(path)
             curVertex = nearestVertex
@@ -484,11 +488,13 @@ class CNN(object):
         minWeight = float("inf")
         for data in graph.get_edge_data(curVertex, src).values():
             weight = data["weight"]
+            # If the edge is blocked or if the weight of this edge is no better than that
+            # of the edge already found, ignore this edge.
             if data["blocked"] or weight > minWeight:
                 continue
             minWeight = weight
             if "shortest_path" not in data:
-                path = [src]
+                path = [v]
             else:
                 path = data["shortest_path"]
                 assert path[0] == curVertex or path[-1] == curVertex
@@ -496,7 +502,10 @@ class CNN(object):
                     path = path[1:]
                 else:
                     path = path[-2::-1]
-        P.extend(path)
+        if path is None:
+            P += P[-2::-1]
+        else:
+            P.extend(path)
         return P
 
     def apply(self, graph, src, display=True):
@@ -529,58 +538,4 @@ class CNN(object):
         # print(f"{P2=}")
         log(P, Us, P1, P2)
         return P1 + P2[1:]
-
-
-if __name__ == "__main__":
-    # christofides = Christofides()
-    # graph = nx.Graph()
-    # edges = [ ("A", "B", 2), ("A", "C", 1), ("A", "D", 3), ("A", "E", 2),
-    #           ("B", "C", 1), ("B", "D", 2), ("B", "E", 3),
-    #           ("C", "D", 2), ("C", "E", 3),
-    #           ("D", "E", 2) ]
-    # for u, v, w in edges:
-    #     graph.add_edge(u, v, weight=w)
-    # print(christofides.apply(graph, "A"))
-
-    # print()
-
-    # graph = nx.Graph()
-    # for u, v, w in [(1, 2, 1), (1, 3, 1), (1, 4, 1), (1, 5, 2), (2, 3, 1), (2, 5, 1), (2, 4, 2),
-    #                 (3, 4, 1), (3, 5, 1), (4, 5, 1)]:
-    #     graph.add_edge(u, v, weight=w)
-    # print(christofides.apply(graph, 1))
-
-    # graph = nx.Graph()
-    # edges = [ (1, 2), () ]
-    # for u in range(1, 17):
-    #     for v in range(u, 17):
-    #         graph.add_edge(u, v, blocked=False, weight=1)
-    # blockedEdges = [ (3, 4), (3, 5), (7, 8), (9, 10), (12, 13), (12, 14),
-    #                  (16, 4), (4, 5), (8, 10), (13, 14),
-    #                  (13, 10), (10, 5), (5, 14),
-    #                  (14, 1) ]
-    # for u, v in blockedEdges:
-    #     graph[u][v]["blocked"] = True
-
-    # print(CR().apply(graph, 1))
-
-    # graph = nx.Graph()
-    # # edges = [ (1, 2), () ]
-    # for u in range(1, 17):
-    #     for v in range(u + 1, 17):
-    #         graph.add_edge(u, v, blocked=False, weight=1)
-    # blockedEdges = [ (2, 3), (5, 6), (5, 7), (5, 8), (9, 16),
-    #                  (11, 12), (11, 13), (14, 2), (14, 15), (16, 1), (1, 3) ]
-    # for u, v in blockedEdges:
-    #     graph[u][v]["blocked"] = True
-    # cnn = CNN()
-    # c = Christofides()
-    # print(cnn.apply(graph, 1))
-    # print(c.apply(graph, 1))
-    # Gstar, Us, PPrime = cnn.shortcut(graph, list(range(1, 17)) + [1])
-    # print(Us)
-    # GPrime = cnn.compress(Gstar, Us, graph)
-    # for u, v, data in GPrime.edges(data=True):
-    #     print(u, v, data)
-    pass
 
