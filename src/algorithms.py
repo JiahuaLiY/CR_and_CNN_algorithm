@@ -490,11 +490,11 @@ class CNN(object):
             weight = data["weight"]
             # If the edge is blocked or if the weight of this edge is no better than that
             # of the edge already found, ignore this edge.
-            if data["blocked"] or weight > minWeight:
+            if data["blocked"] or weight >= minWeight:
                 continue
             minWeight = weight
             if "shortest_path" not in data:
-                path = [v]
+                path = [src]
             else:
                 path = data["shortest_path"]
                 assert path[0] == curVertex or path[-1] == curVertex
