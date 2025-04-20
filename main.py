@@ -1,36 +1,79 @@
 from src.algorithms import CR, CNN
 from src.graphUtil import generate_blocked_graph
 
-from tqdm import tqdm
+import networkx as nx
+import tqdm
 import random
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
-cr = CR()
-cnn = CNN()
-def sumWeight(G, path):
-    sum = 0
+def pathWeight(graph: nx.Graph, path):
+    weight = 0
     for u, v in zip(path, path[1:]):
-        assert not G.get_edge_data(u, v)["blocked"]
-        sum += G.get_edge_data(u, v)["weight"]
-    return sum
+        data = graph.get_edge_data(u, v)
+        assert not data["blocked"]
+        weight += data["weight"]
+    return weight
 
-for _ in tqdm(range(1000)):
-    n = random.randint(50, 100)
-    k = random.randint(14 * n, 15 * n)
-    G = generate_blocked_graph(n, k)
+def runWeightComparaison(rangeOfNodes, kFormula, nbRepats, fileName=None):
+    cr = CR()
+    cnn = CNN()
+    data = []
+    for nbNode in rangeOfNodes:
+        kBlockage = kFormula(nbNode)
+        for _ in tqdm.tqdm(range(nbRepats), desc=f"Size {nbNode}"):
+            graph = generate_blocked_graph(nbNode, kBlockage)
+            src = random.choice(list(graph.nodes))
 
-    src = random.choice(list(G.nodes))
+            crTour = cr.apply(graph, src, display=False)
+            assert crTour[0] == crTour[-1]
+            crWeight = pathWeight(graph, crTour)
+            data.append({
+                "algorithm": "CR",
+                "number of nodes": nbNode,
+                "weight": crWeight
+            })
 
-    crTour = cr.apply(G, src, display=False)
-    assert len(set(crTour)) == n
-    assert crTour[0] == crTour[-1]
+            cnnTour = cnn.apply(graph, src, display=False)
+            assert cnnTour[0] == cnnTour[-1]
+            cnnWeight = pathWeight(graph, cnnTour)
+            data.append({
+                "algorithm": "CNN",
+                "number of nodes": nbNode,
+                "weight": cnnWeight
+            })
+    dataFrame = pd.DataFrame(data)
 
-    cnnTour = cnn.apply(G, src, display=False)
-    assert len(set(cnnTour)) == n
-    assert cnnTour[0] == cnnTour[-1]
+    plt.figure()
+    sns.boxplot(
+        x="number of nodes",
+        y="weight",
+        hue="algorithm",
+        data=dataFrame,
+        palette={ "CR": "lightcoral", "CNN": "lightblue" },
+        width=0.6
+    )
 
-    crResult = sumWeight(G, crTour)
-    cnnResult = sumWeight(G, cnnTour)
-    if crResult < cnnResult:
-        print("cr")
-    else:
-        print("cnn")
+    plt.title("Comparaison of path weights: CR vs CNN algorithms")
+    plt.xlabel("Number of nodes")
+    plt.ylabel("Path weight")
+    plt.legend(title="Algorithm")
+
+    if fileName is not None:
+        plt.savefig(fileName)
+    plt.show()
+
+
+if __name__ == "__main__":
+    # runWeightComparaison(np.arange(10, 52, 2),
+    #                      lambda x: x - 2,
+    #                      100,
+    #                      "small_k.png")
+    
+    runWeightComparaison(np.arange(50, 210, 10),
+                         lambda x: .2 * (x**2),
+                         50,
+                         "large_k.png")
+    pass
