@@ -113,6 +113,7 @@ christofidesTourPrime = nx.algorithms.approximation.christofides(christofodesGra
 christofidesPathWeight = get_total_weight(christofodesGraph, christofidesTour)
 christofidesPathWeightPrime = get_total_weight(christofodesGraph, christofidesTourPrime)
 
+print(f"{christofidesTour} vs {christofidesTourPrime}")
 print(f"{christofidesPathWeight} vs {christofidesPathWeightPrime}")
 # [Out]
 # ['A', 'E', 'D', 'B', 'C', 'A'] vs ['A', 'E', 'D', 'B', 'C', 'A']
