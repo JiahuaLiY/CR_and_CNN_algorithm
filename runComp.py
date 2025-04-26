@@ -16,7 +16,8 @@ def runComparaison(rangeOfNodes, kFormula, nbGraph, nbRepats, fileName=None):
     cr = CR()
     cnn = CNN()
 
-    header_needed = not os.path.isfile(fileName)
+    if fileName is not None:
+        header_needed = not os.path.isfile(fileName)
 
     for nbNode in rangeOfNodes:
         kBlockage = kFormula(nbNode)
@@ -49,17 +50,19 @@ def runComparaison(rangeOfNodes, kFormula, nbGraph, nbRepats, fileName=None):
                     "run time": CNNrun_time
                 })
 
-                pd.DataFrame(data).to_csv(fileName,
-                                          mode='a',
-                                          header=header_needed,
-                                          index=False)
-                header_needed = False
+                if fileName is not None:
+                    pd.DataFrame(data).to_csv(fileName,
+                                            mode='a',
+                                            header=header_needed,
+                                            index=False)
+                    header_needed = False
 
 def runKComparaison(nbNode, kratios, nbGraph, nbRepats, fileName=None):
     cr = CR()
     cnn = CNN()
 
-    header_needed = not os.path.isfile(fileName)
+    if fileName is not None:
+        header_needed = not os.path.isfile(fileName)
 
     for kratio in kratios:
         kBlockage = round(kratio*nbNode) if kratio < 1 else kratio
@@ -94,11 +97,12 @@ def runKComparaison(nbNode, kratios, nbGraph, nbRepats, fileName=None):
                     "run time": CNNrun_time
                 })
 
-                pd.DataFrame(data).to_csv(fileName,
-                                          mode='a',
-                                          header=header_needed,
-                                          index=False)
-                header_needed = False
+                if fileName is not None:
+                    pd.DataFrame(data).to_csv(fileName,
+                                            mode='a',
+                                            header=header_needed,
+                                            index=False)
+                    header_needed = False
 
     # plt.figure()
     # sns.boxplot(
@@ -121,15 +125,36 @@ def runKComparaison(nbNode, kratios, nbGraph, nbRepats, fileName=None):
 
 
 if __name__ == "__main__":
+    # runComparaison(np.arange(50, 210, 10),
+    #                lambda x: .2 * (x**2), 50,
+    #                5,
+    #                "large_k50graph.csv")
+
+    # runComparaison(np.arange(10, 52, 2),
+    #                lambda x: x-2, 50,
+    #                5,
+    #                "fix_k_vary_n50graph.csv")
+
+
+    # nbNode = 50
+    # k_ratios = list(np.arange(0.1, 1, 0.1))
+    # k_ratios.append(nbNode-2)
+    # runKComparaison(nbNode,
+    #                 k_ratios,
+    #                 50,
+    #                 5,
+    #                 "fix_n_vary_k50graph.csv")
+
+
     runComparaison(np.arange(50, 210, 10),
                    lambda x: .2 * (x**2), 50,
-                   5,
-                         "large_k50graph.csv")
+                   1,
+                    "large_k50graph.csv")
 
     runComparaison(np.arange(10, 52, 2),
                    lambda x: x-2, 50,
-                   5,
-                         "fix_k_vary_n50graph.csv")
+                   1,
+                   "fix_k_vary_n50graph.csv")
 
 
     nbNode = 50
@@ -137,5 +162,7 @@ if __name__ == "__main__":
     k_ratios.append(nbNode-2)
     runKComparaison(nbNode,
                     k_ratios,
-                    50, 5,
+                    50,
+                    1,
                     "fix_n_vary_k50graph.csv")
+    pass
